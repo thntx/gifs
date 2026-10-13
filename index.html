@@ -14,20 +14,15 @@
     #viewer { position: fixed; inset: 0; width: 100%; height: 100%; background: #000; }
     .gif { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: fill; }
     .gif[hidden] { display: none; }
-    #hint { position: absolute; bottom: max(24px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); padding: 12px 18px; border: 1px solid #ffffff40; border-radius: 14px; background: #000b; color: #fff; font: 14px/1.5 system-ui, sans-serif; text-align: center; cursor: pointer; }
-    #hint:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
-    #viewer:fullscreen #hint, #viewer:-webkit-full-screen #hint { display: none; }
   </style>
 </head>
 <body>
   <main id="viewer" aria-label="Fullscreen GIF viewer">
     <img id="first" class="gif" src="assets/first.gif" alt="First dancing emoji GIF" draggable="false" fetchpriority="high">
     <img id="second" class="gif" src="assets/second.gif" alt="Second dancing emoji GIF" draggable="false" hidden>
-    <button id="hint" type="button">Click to enter fullscreen · Press 1 or 2 to switch</button>
   </main>
   <script>
     const viewer = document.getElementById('viewer');
-    const hint = document.getElementById('hint');
     const first = document.getElementById('first');
     const second = document.getElementById('second');
     let pendingFullscreen = false;
@@ -40,15 +35,12 @@
     async function enterFullscreen() {
       if (document.fullscreenElement || document.webkitFullscreenElement || pendingFullscreen) return;
       const request = viewer.requestFullscreen || viewer.webkitRequestFullscreen;
-      if (!request) {
-        hint.textContent = 'Fullscreen unavailable in this browser · Press 1 or 2 to switch';
-        return;
-      }
+      if (!request) return;
       pendingFullscreen = true;
       try {
         await request.call(viewer);
       } catch {
-        hint.textContent = 'Click to retry fullscreen · Press 1 or 2 to switch';
+        // A later user interaction can retry if the browser rejects the request.
       } finally {
         pendingFullscreen = false;
       }
