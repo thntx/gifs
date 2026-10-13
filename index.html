@@ -13,7 +13,6 @@
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
     #viewer { position: fixed; inset: 0; width: 100%; height: 100%; background: #000; }
     .gif { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: fill; }
-    .gif[hidden] { display: none; }
   </style>
 </head>
 <body>
@@ -23,6 +22,22 @@
   <script>
     const gif = document.getElementById('gif');
     let current = 1;
+    let pendingFullscreen = false;
+
+    async function enterFullscreen() {
+      if (document.fullscreenElement || document.webkitFullscreenElement || pendingFullscreen) return;
+      const page = document.documentElement;
+      const request = page.requestFullscreen || page.webkitRequestFullscreen;
+      if (!request) return;
+      pendingFullscreen = true;
+      try {
+        await request.call(page);
+      } catch {
+        // Browsers may require a user gesture; retry on the next click or keypress.
+      } finally {
+        pendingFullscreen = false;
+      }
+    }
 
     function showGif(number) {
       if (number === current) return;
@@ -31,6 +46,7 @@
       gif.alt = number === 1 ? 'First dancing emoji GIF' : 'Second dancing emoji GIF';
     }
 
+    document.addEventListener('click', enterFullscreen);
     document.addEventListener('keydown', event => {
       if (event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
       if (event.key === '1' || event.code === 'Numpad1') {
@@ -40,7 +56,9 @@
         event.preventDefault();
         showGif(2);
       }
+      if (event.key !== 'Escape' && event.key !== 'F11') enterFullscreen();
     });
+    enterFullscreen();
   </script>
 </body>
 </html>

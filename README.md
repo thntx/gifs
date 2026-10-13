@@ -3,11 +3,11 @@
 A fullscreen GIF viewer hosted on GitHub Pages.
 
 - The first GIF plays as soon as the page opens.
-- Press **F11** to enter the browser's native fullscreen mode.
+- The page requests fullscreen on arrival. If the browser blocks automatic entry, the first click or keypress retries it.
 - Press **1** for the first GIF and **2** for the second (including the number pad).
-- Press **F11** again to exit fullscreen.
+- Press **Esc** to exit page fullscreen. F11 remains available for native browser fullscreen.
 - Each GIF stretches to fill the entire display without borders.
 
-The page shows only the active GIF. It fills the browser viewport, including in native browser fullscreen. Websites cannot trigger F11 themselves.
+The page shows only the active GIF. It requests fullscreen for the entire document and fills the display without additional UI. Browser security usually requires a click or keypress before entering fullscreen; websites cannot trigger F11 themselves.
 
 GitHub Pages serves the root of the `main` branch. All assets use relative paths.
