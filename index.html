@@ -18,48 +18,27 @@
 </head>
 <body>
   <main id="viewer" aria-label="Fullscreen GIF viewer">
-    <img id="first" class="gif" src="assets/first.gif" alt="First dancing emoji GIF" draggable="false" fetchpriority="high">
-    <img id="second" class="gif" src="assets/second.gif" alt="Second dancing emoji GIF" draggable="false" hidden>
+    <img id="gif" class="gif" src="assets/first.gif" alt="First dancing emoji GIF" draggable="false" fetchpriority="high">
   </main>
   <script>
-    const viewer = document.getElementById('viewer');
-    const first = document.getElementById('first');
-    const second = document.getElementById('second');
-    let pendingFullscreen = false;
+    const gif = document.getElementById('gif');
+    let current = 1;
 
     function showGif(number) {
-      first.hidden = number !== 1;
-      second.hidden = number !== 2;
+      if (number === current) return;
+      current = number;
+      gif.src = number === 1 ? 'assets/first.gif' : 'assets/second.gif';
+      gif.alt = number === 1 ? 'First dancing emoji GIF' : 'Second dancing emoji GIF';
     }
 
-    async function enterFullscreen() {
-      if (document.fullscreenElement || document.webkitFullscreenElement || pendingFullscreen) return;
-      const request = viewer.requestFullscreen || viewer.webkitRequestFullscreen;
-      if (!request) return;
-      pendingFullscreen = true;
-      try {
-        await request.call(viewer);
-      } catch {
-        // A later user interaction can retry if the browser rejects the request.
-      } finally {
-        pendingFullscreen = false;
-      }
-    }
-
-    viewer.addEventListener('click', enterFullscreen);
     document.addEventListener('keydown', event => {
       if (event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
       if (event.key === '1' || event.code === 'Numpad1') {
         event.preventDefault();
         showGif(1);
-        enterFullscreen();
       } else if (event.key === '2' || event.code === 'Numpad2') {
         event.preventDefault();
         showGif(2);
-        enterFullscreen();
-      } else if (event.key === 'Enter' || event.key === ' ' || event.key.toLowerCase() === 'f') {
-        event.preventDefault();
-        enterFullscreen();
       }
     });
   </script>
