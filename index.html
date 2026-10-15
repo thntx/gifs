@@ -4,25 +4,57 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#000000">
-  <meta name="description" content="Two GIFs, fullscreen. Press 1 or 2 to switch.">
+  <meta name="description" content="GIF channels with automatic switching. Press 0 for auto, or a channel number to select it.">
   <title>GIFs</title>
   <link rel="preload" as="image" href="assets/first.gif">
   <link rel="preload" as="image" href="assets/second.gif">
   <style>
     * { box-sizing: border-box; }
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
-    #viewer { position: fixed; inset: 0; width: 100%; height: 100%; background: #000; }
+    #viewer { position: fixed; inset: 0; width: 100%; height: 100%; background: #000; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
     .gif { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: fill; }
   </style>
 </head>
 <body>
-  <main id="viewer" aria-label="Fullscreen GIF viewer">
+  <main id="viewer" aria-label="GIF channel viewer">
     <img id="gif" class="gif" src="assets/first.gif" alt="First dancing emoji GIF" draggable="false" fetchpriority="high">
   </main>
   <script>
+    const viewer = document.getElementById('viewer');
     const gif = document.getElementById('gif');
+    const channels = [
+      { src: 'assets/first.gif', alt: 'First dancing emoji GIF' },
+      { src: 'assets/second.gif', alt: 'Second dancing emoji GIF' }
+    ];
     let current = 1;
+    let selectedChannel = 0;
+    let channelTimer;
     let pendingFullscreen = false;
+
+    function showGif(number) {
+      if (number === current) return;
+      current = number;
+      gif.src = channels[number - 1].src;
+      gif.alt = channels[number - 1].alt;
+    }
+
+    function scheduleChannelSwitch() {
+      clearTimeout(channelTimer);
+      if (selectedChannel !== 0 || channels.length < 2) return;
+      channelTimer = setTimeout(() => {
+        // Pick any channel except the one already playing.
+        const offset = 1 + Math.floor(Math.random() * (channels.length - 1));
+        showGif(((current - 1 + offset) % channels.length) + 1);
+        scheduleChannelSwitch();
+      }, 30000 + Math.floor(Math.random() * 30001));
+    }
+
+    function selectChannel(number) {
+      if (!Number.isInteger(number) || number < 0 || number > channels.length) return;
+      selectedChannel = number;
+      if (number !== 0) showGif(number);
+      scheduleChannelSwitch();
+    }
 
     async function enterFullscreen() {
       if (document.fullscreenElement || document.webkitFullscreenElement || pendingFullscreen) return;
@@ -33,32 +65,67 @@
       try {
         await request.call(page);
       } catch {
-        // Browsers may require a user gesture; retry on the next click or keypress.
+        // Fullscreen support and permission depend on the mobile browser.
       } finally {
         pendingFullscreen = false;
       }
     }
 
-    function showGif(number) {
-      if (number === current) return;
-      current = number;
-      gif.src = number === 1 ? 'assets/first.gif' : 'assets/second.gif';
-      gif.alt = number === 1 ? 'First dancing emoji GIF' : 'Second dancing emoji GIF';
-    }
-
-    document.addEventListener('click', enterFullscreen);
     document.addEventListener('keydown', event => {
       if (event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
-      if (event.key === '1' || event.code === 'Numpad1') {
-        event.preventDefault();
-        showGif(1);
-      } else if (event.key === '2' || event.code === 'Numpad2') {
-        event.preventDefault();
-        showGif(2);
-      }
-      if (event.key !== 'Escape' && event.key !== 'F11') enterFullscreen();
+      const digit = /^\d$/.test(event.key) ? event.key : /^Numpad\d$/.test(event.code) ? event.code.slice(-1) : null;
+      if (digit === null || Number(digit) > channels.length) return;
+      event.preventDefault();
+      selectChannel(Number(digit));
     });
-    enterFullscreen();
+
+    const doubleTapDelay = 300;
+    let touchStart = null;
+    let lastTap = null;
+    let tapTimer;
+
+    function cancelTap() {
+      clearTimeout(tapTimer);
+      touchStart = null;
+      lastTap = null;
+    }
+
+    viewer.addEventListener('pointerdown', event => {
+      if (event.pointerType !== 'touch') return;
+      if (!event.isPrimary) {
+        cancelTap();
+        return;
+      }
+      touchStart = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp };
+    });
+
+    viewer.addEventListener('pointercancel', cancelTap);
+    viewer.addEventListener('pointerup', event => {
+      if (event.pointerType !== 'touch' || !event.isPrimary || !touchStart || event.pointerId !== touchStart.id) return;
+      const start = touchStart;
+      touchStart = null;
+      if (event.timeStamp - start.time > 400 || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 20) {
+        cancelTap();
+        return;
+      }
+      if (lastTap && event.timeStamp - lastTap.time <= doubleTapDelay && Math.hypot(event.clientX - lastTap.x, event.clientY - lastTap.y) <= 40) {
+        cancelTap();
+        enterFullscreen();
+        return;
+      }
+      // Delay channel selection so a double tap only enters fullscreen.
+      if (lastTap) {
+        clearTimeout(tapTimer);
+        selectChannel((selectedChannel + 1) % (channels.length + 1));
+      }
+      lastTap = { x: event.clientX, y: event.clientY, time: event.timeStamp };
+      tapTimer = setTimeout(() => {
+        lastTap = null;
+        selectChannel((selectedChannel + 1) % (channels.length + 1));
+      }, doubleTapDelay);
+    });
+
+    scheduleChannelSwitch();
   </script>
 </body>
 </html>
